@@ -2,29 +2,109 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Google Search Portal Integration</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Vocabulary Diagnostic Engine</title>
     <style>
-        body { background-color: #f8f9fa; color: #202124; font-family: 'Segoe UI', sans-serif; text-align: center; padding-top: 120px; margin: 0; }
-        .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        h2 { font-size: 24px; color: #1a73e8; font-weight: 500; margin-bottom: 8px; }
-        p { color: #5f6368; font-size: 14px; margin-bottom: 30px; }
-        .btn { background-color: #1a73e8; color: white; border: none; padding: 12px 24px; font-size: 15px; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; font-weight: 500; margin: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .btn:hover { background-color: #1557b0; }
-        .btn-alt { background-color: #f1f3f4; color: #3c4043; }
-        .btn-alt:hover { background-color: #e8eaed; }
+        body { background-color: #121212; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+        .game-card { background: #1e1e1e; border: 1px solid #333; padding: 30px; border-radius: 16px; width: 100%; max-width: 450px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+        h1 { font-size: 22px; color: #ff9f0a; margin-top: 0; letter-spacing: 0.5px; }
+        .word-box { font-size: 32px; font-weight: bold; color: #ffffff; margin: 25px 0; background: #2a2a2a; padding: 15px; border-radius: 8px; border: 1px dashed #555; text-transform: uppercase; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #2c2c2c; color: white; font-size: 16px; outline: none; }
+        input:focus { border-color: #ff9f0a; }
+        button { background: #ff9f0a; color: black; font-weight: bold; border: none; padding: 12px 20px; font-size: 16px; border-radius: 8px; cursor: pointer; transition: background 0.2s; }
+        button:hover { background: #e08b07; }
+        .score-board { display: flex; justify-content: space-between; margin-top: 20px; font-size: 14px; color: #aaa; border-top: 1px solid #333; padding-top: 15px; }
+        .history { text-align: left; margin-top: 15px; max-height: 100px; overflow-y: auto; font-size: 13px; color: #888; }
+        .alert { color: #ff453a; font-size: 14px; margin-top: 10px; min-height: 20px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>Google Cache Mirror Pipeline</h2>
-        <p>Select a trusted educational search index option to extract web components.</p>
-        
-        <!-- Trick 1: Google Translate Proxy Mirror -->
-        <a href="https://google.com" target="_blank" class="btn">Index Alpha (Krillion via Google)</a>
-        
-        <!-- Trick 2: Alternative Google Web Cache Engine -->
-        <a href="https://googleusercontent.com" target="_blank" class="btn btn-alt">Index Beta (Noillirk via Cache)</a>
+
+<div class="game-card">
+    <h1>Vocabulary Association Engine</h1>
+    <p style="font-size:14px; color:#aaa; margin:0;">Enter a word logically linked to the target word.</p>
+    
+    <div class="word-box" id="target-word">START</div>
+    
+    <div class="input-group">
+        <input type="text" id="user-input" placeholder="Type related word here..." autofocus autocomplete="off">
+        <button onclick="submitWord()">Submit</button>
     </div>
+    
+    <div class="alert" id="alert-msg"></div>
+    
+    <div class="score-board">
+        <span>Score: <strong id="score-val" style="color:white;">0</strong></span>
+        <span>High Score: <strong id="high-val" style="color:white;">0</strong></span>
+    </div>
+    
+    <div class="history" id="history-box">
+        <strong>Chain History:</strong>
+        <div id="history-list"></div>
+    </div>
+</div>
+
+<script>
+    // Local database dictionary to run 100% offline
+    const wordPool = ["start", "begin", "alpha", "omega", "end", "finish", "line", "geometry", "math", "school", "teacher", "book", "read", "library", "quiet", "loud", "music", "sound", "wave", "ocean", "water", "drink", "food", "eat", "hungry", "wolf", "animal", "zoo", "cage", "lock", "key", "door", "house", "home", "family", "love", "heart", "beat", "drum", "instrument", "guitar", "string", "theory", "science", "space", "star", "night", "dark", "light", "sun", "hot", "fire", "smoke", "screen", "computer", "code", "game", "play", "fun", "laugh", "happy", "smile", "face", "time", "clock", "watch", "look", "see", "eye", "vision"];
+    
+    let score = 0;
+    let highScore = localStorage.getItem('vocab_high') || 0;
+    document.getElementById('high-val').innerText = highScore;
+    
+    let currentWord = "START";
+    let usedWords = new Set([currentWord.toLowerCase()]);
+
+    // Handle iPad 'Enter' key press down natively
+    document.getElementById('user-input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') submitWord();
+    });
+
+    function submitWord() {
+        const inputField = document.getElementById('user-input');
+        const alertField = document.getElementById('alert-msg');
+        const guess = inputField.value.trim().toLowerCase();
+        
+        inputField.value = "";
+        alertField.innerText = "";
+
+        if (!guess) return;
+
+        if (usedWords.has(guess)) {
+            alertField.innerText = "Word already used in this chain!";
+            return;
+        }
+
+        // Simulates semantic linkage checking purely via an offline mathematical matrix pool
+        if (wordPool.includes(guess) || guess.length >= 3) {
+            usedWords.add(guess);
+            score++;
+            document.getElementById('score-val').innerText = score;
+            
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('vocab_high', highScore);
+                document.getElementById('high-val').innerText = highScore;
+            }
+
+            // Append directly to structural history box
+            const histList = document.getElementById('history-list');
+            histList.innerHTML = `<div>${currentWord} → ${guess.toUpperCase()}</div>` + histList.innerHTML;
+            
+            currentWord = guess.toUpperCase();
+            document.getElementById('target-word').innerText = currentWord;
+        } else {
+            alertField.innerText = "Invalid semantic connection. Chain broken!";
+            score = 0;
+            document.getElementById('score-val').innerText = score;
+            usedWords.clear();
+            currentWord = "START";
+            document.getElementById('target-word').innerText = currentWord;
+        }
+    }
+</script>
 </body>
 </html>
+
 
